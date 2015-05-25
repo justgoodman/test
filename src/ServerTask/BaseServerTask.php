@@ -1,10 +1,15 @@
 <?php
-namespace SocketTask;
+namespace SocketDaemon\ServerTask;
 
 use Exception;
+use Psr\Log\LoggerInterface;
 
-class BaseSocketTask
+class BaseServerTask
 {
+    /**
+     * @var LoggerInterface
+     */
+    protected $logger;
     /**
      * @var resource
      */
@@ -34,11 +39,13 @@ class BaseSocketTask
      * @param string $host
      * @param int $port
      * @param string $greetingText
+     * @param LoggerInterface $logger
      * @param int $backlog
      * @throws Exception
      */
-    public function __construct($host, $port, $greetingText, $backlog = 5)
+    public function __construct($host, $port, $greetingText, LoggerInterface $logger, $backlog = 5)
     {
+        $this->logger = $logger;
         $this->greetingText = $greetingText;
         $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         if (!$this->socket) {
@@ -75,25 +82,17 @@ class BaseSocketTask
     {
         do {
             $this->connect();
+            $this->logger->debug('Connected');
             $this->write($this->greetingText . "\n");
             try {
                 do {
                     $command = $this->read();
                 } while ($this->processCommand($command));
             } catch (Exception $e) {
-                $this->logError($e->getMessage());
+                $this->logger->error($e->getMessage());
             }
             $this->closeConnection();
         } while (true);
-    }
-
-    /**
-     * simple Logging can be override
-     * @param $message
-     */
-    protected function logError($message)
-    {
-        echo 'Error: ' . $message;
     }
 
     protected function connect()
@@ -146,4 +145,13 @@ class BaseSocketTask
         }
         return true;
     }
+
+    /**
+     * @return int
+     */
+    public function getId()
+    {
+        return exec('echo $$');
+    }
+
 }

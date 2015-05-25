@@ -1,12 +1,12 @@
 <?php
-namespace TestSocket;
+namespace SocketDaemon\ServerTask;
 
-use SocketTask\BaseSocketTask;
+use SocketDaemon\ServerTask\BaseServerTask;
 use Exception;
 
-require_once('socketTask\BaseSocketSocket.php');
 
-class SimpleSocketTask extends BaseSocketTask  {
+class SimpleServerTask extends BaseServerTask
+{
     /**
      * @throws Exception
      */
@@ -17,9 +17,10 @@ class SimpleSocketTask extends BaseSocketTask  {
         try {
             do {
                 $command = $this->read();
+                $this->logger->debug(sprintf('Read message: "%s"', $command));
             } while ($this->processCommand($command));
         } catch (Exception $e) {
-            $this->logError($e->getMessage());
+            $this->logger->error($e->getMessage());
         }
         $this->closeConnection();
     }
@@ -30,19 +31,27 @@ class SimpleSocketTask extends BaseSocketTask  {
      */
     protected function processCommand($command)
     {
+        if (!$command) {
+            return true;
+        }
+        $this->logger->debug(sprintf('Process message: "%s"', $command));
         switch ($command) {
             case 'status':
                 $status = $this->getStatus();
-                $this->write($this->getStatus());
+                $this->write($this->getStatus() . "\n");
                 if ($status == 'Success') {
                     return true;
                 }
                 break;
             case 'terminate':
-                $this->write('Exit');
+                $this->write('Exit' . "\n");
                 return false;
+            case 'ping':
+                $this->write('pong' . "\n");
+                return true;
             default:
-                $this->write('errorInput');
+                $this->write('errorInput' . "\n");
+                break;
         }
         $this->doSomeIterationOperation();
         return true;
@@ -61,13 +70,13 @@ class SimpleSocketTask extends BaseSocketTask  {
      */
     function getStatus()
     {
-        switch (rand(1,3)) {
+        switch (rand(0, 4)) {
             case 1:
-                return 'Proccess OK';
+                return 'InProcess';
             case 2:
-                return 'Error';
+                return 'ErrorDone';
             case 3:
-                return 'Success';
+                return 'TaskDone';
         }
     }
 }

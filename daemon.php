@@ -1,22 +1,31 @@
 <?php
 //!!! Для запуска использовать команду "nohup php daemon.php > /dev/null 2>&1 &"
-require_once('socketTask\TaskController.php');
+$loader = include __DIR__ . '/vendor/autoload.php';
 
-use SocketTask\TaskController;
-use Model\Task;
+use SocketDaemon\ClientTask\ControllerClientTask;
+use SocketDaemon\ServerTask\ControllerServerTask;
+use Monolog\Logger;
 
 ob_implicit_flush();
 
-$firstTask = new Task();
+$firstTask = new ControllerClientTask();
 $firstTask
     ->setName('first')
-    ->setPort(10007)
+    ->setHost('0.0.0.0')
+    ->setPort(10009)
     ->setCommand('php firstTask.php');
-$secondTask = new Task();
+$secondTask = new ControllerClientTask();
 $secondTask
     ->setName('second')
-    ->setPort(10008)
+    ->setHost('0.0.0.0')
+    ->setPort(10009)
     ->setCommand('php secondTask.php');
 
-$testSocket = new TaskController('0.0.0.0', 10006,['first' => $firstTask, 'second' => $secondTask], 'Task controller');
+$testSocket = new ControllerServerTask(
+    '0.0.0.0',
+    10003,
+    ['first' => $firstTask, 'second' => $secondTask],
+    'Task controller',
+    new Logger('TaskController')
+);
 $testSocket->run();
